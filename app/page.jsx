@@ -1,93 +1,114 @@
 "use client";
-import React from "react";
-import {
-  Container,
-  Box,
-  AppBar,
-  Toolbar,
-  Typography,
-  IconButton,
-} from "@mui/material";
-import Brightness4Icon from "@mui/icons-material/Brightness4";
-import Brightness7Icon from "@mui/icons-material/Brightness7";
+import React, { useState } from "react";
+import { Box } from "@mui/material";
+import Sidebar from "../components/Sidebar";
+import Header from "../components/Header";
 import Dashboard from "../components/Dashboard";
-import TransactionForm from "../components/TransactionForm";
-import TransactionList from "../components/TransactionList";
-import Charts from "../components/Charts";
-import BottomNavMobile from "../components/BottomNavMobile";
+import TransactionsPanel from "../components/TransactionsPanel";
+import ChartsPanel from "../components/ChartsPanel";
 import useTransactions from "../lib/useTransactions";
 
-export default function Page({ mode, toggleMode }) {
-  // custom hook manages transactions, categories, budgets, exports
+export default function Page() {
   const tx = useTransactions();
 
+  // single-page routing
+  const [view, setView] = useState("overview"); // 'overview' | 'transactions' | 'analytics' | 'settings'
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <AppBar position="sticky">
-        <Toolbar sx={{ gap: 2 }}>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Personal Finance Tracker
-          </Typography>
-          <IconButton
-            onClick={toggleMode}
-            color="inherit"
-            edge="end"
-            aria-label="theme"
-          >
-            {mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
+      <Sidebar
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen((s) => !s)}
+        active={view}
+        setActive={setView}
+      />
+      <Box component="main" sx={{ flex: 1 }}>
+        <Header onToggleSidebar={() => setSidebarOpen((s) => !s)} />
+        <Box
+          sx={{
+            px: { xs: 2, md: 4 },
+            py: { xs: 2, md: 4 },
+            maxWidth: 1360,
+            mx: "auto",
+          }}
+        >
+          {view === "overview" && (
+            <>
+              <Dashboard
+                summary={tx.summary}
+                budget={tx.budget}
+                setBudget={tx.setBudget}
+              />
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" },
+                  gap: 3,
+                  mt: 3,
+                }}
+              >
+                <ChartsPanel
+                  transactions={tx.transactions}
+                  categories={tx.categories}
+                />
+                <TransactionsPanel
+                  transactions={tx.transactions}
+                  categories={tx.categories}
+                  addTransaction={tx.addTransaction}
+                  editTransaction={tx.editTransaction}
+                  deleteTransaction={tx.deleteTransaction}
+                  exportCSV={tx.exportCSV}
+                  exportJSON={tx.exportJSON}
+                  exportPDF={tx.exportPDF}
+                  resetAll={tx.resetAll}
+                  filters={tx.filters}
+                  setFilters={tx.setFilters}
+                />
+              </Box>
+            </>
+          )}
 
-      <Container maxWidth="lg" sx={{ py: 3, pb: 10 }}>
-        <Dashboard
-          transactions={tx.transactions}
-          budget={tx.budget}
-          setBudget={tx.setBudget}
-        />
-        <Box sx={{ mt: 3, display: "grid", gap: 16 }}>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 3,
-              flexDirection: { xs: "column", md: "row" },
-            }}
-          >
-            <Box sx={{ flex: 1 }}>
-              <TransactionForm
-                categories={tx.categories}
-                onAdd={tx.addTransaction}
-                onAddCategory={tx.addCategory}
-              />
-              <TransactionList
-                transactions={tx.transactions}
-                onDelete={tx.deleteTransaction}
-                onEdit={tx.editTransaction}
-                onExportJSON={tx.exportJSON}
-                onExportCSV={tx.exportCSV}
-                onReset={tx.resetAll}
-                categories={tx.categories}
-                filters={tx.filters}
-                setFilters={tx.setFilters}
-              />
+          {view === "transactions" && (
+            <TransactionsPanel
+              transactions={tx.transactions}
+              categories={tx.categories}
+              addTransaction={tx.addTransaction}
+              editTransaction={tx.editTransaction}
+              deleteTransaction={tx.deleteTransaction}
+              exportCSV={tx.exportCSV}
+              exportJSON={tx.exportJSON}
+              exportPDF={tx.exportPDF}
+              resetAll={tx.resetAll}
+              filters={tx.filters}
+              setFilters={tx.setFilters}
+            />
+          )}
+
+          {view === "analytics" && (
+            <ChartsPanel
+              transactions={tx.transactions}
+              categories={tx.categories}
+            />
+          )}
+
+          {view === "settings" && (
+            <Box>
+              {/* Simple settings panel — you can expand */}
+              <h3>Settings</h3>
+              <p>
+                Manage budgets, recurring templates and export preferences here.
+              </p>
             </Box>
-
-            <Box sx={{ width: { xs: "100%", md: 480 } }}>
-              <Charts
-                transactions={tx.transactions}
-                categories={tx.categories}
-              />
-            </Box>
-          </Box>
-
-          {/* mobile bottom nav */}
-          <BottomNavMobile
-            balance={tx.summary.balance}
-            income={tx.summary.income}
-            expense={tx.summary.expense}
-          />
+          )}
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 }

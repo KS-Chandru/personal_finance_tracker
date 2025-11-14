@@ -1,46 +1,49 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
-import "../styles/globals.css";
+import React, { createContext, useMemo, useState, useEffect } from "react";
+import { ThemeProvider, CssBaseline, createTheme } from "@mui/material";
+
+export const ThemeContext = createContext(null);
 
 export default function RootLayout({ children }) {
-  // ✅ FIX: Load theme directly in useState (React-recommended)
-  const [mode, setMode] = useState(() => {
-    try {
-      return localStorage.getItem("pf_theme") || "light";
-    } catch {
-      return "light";
-    }
-  });
+  const [mounted, setMounted] = useState(false);
 
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-          primary: { main: "#1976d2" },
-          secondary: { main: "#9c27b0" },
-        },
-      }),
-    [mode]
-  );
+  useEffect(() => {
+    setMounted(true); // Only render app AFTER hydration
+  }, []);
+
+  const [mode, setMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("pf_theme") || "light";
+    }
+    return "light";
+  });
 
   const toggleMode = () => {
     const next = mode === "light" ? "dark" : "light";
     setMode(next);
-    try {
-      localStorage.setItem("pf_theme", next);
-    } catch {}
+    localStorage.setItem("pf_theme", next);
   };
+
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: { mode },
+      }),
+    [mode]
+  );
 
   return (
     <html lang="en">
       <body>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          {React.cloneElement(children, { mode, toggleMode })}
-        </ThemeProvider>
+        {mounted && (
+          <ThemeContext.Provider value={{ mode, toggleMode }}>
+            <ThemeProvider theme={theme}>
+              <CssBaseline />
+              {children}
+            </ThemeProvider>
+          </ThemeContext.Provider>
+        )}
       </body>
     </html>
   );
